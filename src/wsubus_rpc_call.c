@@ -344,14 +344,7 @@ static void wsubus_call_on_completed(struct ubus_request *req, int status)
 		lwsl_warn("status != req->status_code (%d != %d)\n", status, req->status_code);
 
 	// retdata is deep copied pointer from retdata handler 
-
 	char *json_str = jsonrpc_response_from_blob(curr_call->id, status, curr_call->retdata);
-	int i=0;
-	for(i; i < strlen(json_str); i++){
-		if(isprint(json_str[i]) == 0){
-			json_str[i] = '*';
-		}
-	}
 
 	wsubus_write_response_str(curr_call->wsi, json_str);
 	free(json_str);

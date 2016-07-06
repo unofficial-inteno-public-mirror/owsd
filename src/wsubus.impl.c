@@ -18,6 +18,7 @@
 
 #include <libubox/blobmsg.h>
 #include <libwebsockets.h>
+#include <ctype.h>
 
 #include <assert.h>
 
@@ -41,6 +42,11 @@ int wsubus_write_response_str(struct lws *wsi, const char *response_str)
 	}
 
 	memcpy(buf+LWS_SEND_BUFFER_PRE_PADDING, response_str, len);
+	for (size_t i = 0; i < len; i++){
+		if(isprint(buf[LWS_SEND_BUFFER_PRE_PADDING + i]) == 0){
+			buf[LWS_SEND_BUFFER_PRE_PADDING + i] = '*';
+		}
+	}
 
 	struct wsubus_client_session *client = lws_wsi_user(wsi);
 
