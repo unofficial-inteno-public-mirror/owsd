@@ -120,11 +120,13 @@ int ubusrpc_handle_list(struct lws *wsi, struct ubusrpc_blob *ubusrpc, struct bl
 	blob_buf_init(&list_data.buf, 0);
 
 	struct prog_context *prog = lws_context_user(lws_get_context(wsi));
+	struct wsubus_client_session *client = lws_wsi_user(wsi);
 
 	void *results_ticket = blobmsg_open_table(&list_data.buf, "");
-	lwsl_info("about to lookup %s\n", ubusrpc->list.pattern);
+	lwsl_notice("client %u wants to do ubus list %s\n", client->id, ubusrpc->list.pattern);
 	ret = ubus_lookup(prog->ubus_ctx, ubusrpc->list.pattern, ubus_lookup_cb, &list_data);
-	lwsl_info("after loookup rc %d, error %d\n", ret, list_data.error);
+	if (list_data.error || ret)
+		lwsl_warn("after loookup rc %d, error %d\n", ret, list_data.error);
 	blobmsg_close_table(&list_data.buf, results_ticket);
 
 	if (ret) {

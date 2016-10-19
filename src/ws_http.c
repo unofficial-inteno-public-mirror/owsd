@@ -54,7 +54,7 @@ static void ufd_service_cb(struct uloop_fd *ufd, unsigned int revents)
 {
 	extern struct prog_context global;
 
-	lwsl_debug("servicing fd %d with ufd eventmask %x %s%s\n", ufd->fd, revents,
+	lwsl_debug("servicing fd %d: %s%s\n", ufd->fd,
 			revents & ULOOP_READ ? "R" : "", revents & ULOOP_WRITE ? "W" : "");
 	struct pollfd pfd;
 
@@ -64,11 +64,11 @@ static void ufd_service_cb(struct uloop_fd *ufd, unsigned int revents)
 
 	if (ufd->eof) {
 		pfd.revents |= POLLHUP;
-		lwsl_debug("ufd HUP on %d\n", ufd->fd);
+		lwsl_notice("HUP on ufd %d\n", ufd->fd);
 	}
 	if (ufd->error) {
 		pfd.revents |= POLLERR;
-		lwsl_debug("ufd ERR on %d\n", ufd->fd);
+		lwsl_notice("ERR on ufd %d\n", ufd->fd);
 	}
 
 	lws_service_fd(global.lws_ctx, &pfd);
@@ -140,7 +140,7 @@ static int ws_http_cb(struct lws *wsi,
 	}
 
 	case LWS_CALLBACK_CHANGE_MODE_POLL_FD: {
-		lwsl_notice("modify fd %d to mask %x %s%s\n", in_pollargs->fd, in_pollargs->events,
+		lwsl_info("modify fd %d to mask %x %s%s\n", in_pollargs->fd, in_pollargs->events,
 				in_pollargs->events & POLLIN ? "IN" : "", in_pollargs->events & POLLOUT ? "OUT" : "");
 
 		assert(in_pollargs->fd >= 0 && in_pollargs->fd > 0 && (size_t)in_pollargs->fd < prog->num_ufds);

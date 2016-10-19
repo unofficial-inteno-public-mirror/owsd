@@ -30,12 +30,12 @@
 int ws_http_serve_interpret_retcode(struct lws *wsi, int ret)
 {
 	if (ret < 0) {
-		lwsl_info("error %d serving file\n", ret);
+		lwsl_warn("error code %d serving HTTP\n", ret);
 		return -1;
 	} else if (ret > 0) {
 		return lws_http_transaction_completed(wsi);
 	}
-	lwsl_debug("not closing connection\n");
+	lwsl_info("not closing connection\n");
 	return 0;
 }
 
@@ -221,7 +221,7 @@ int ws_http_serve_file(struct lws *wsi, const char *in)
 	struct file_meta meta = { .status = -1 };
 	meta.headers_cur = meta.headers;
 	determine_file_meta(wsi, &meta, filepath, len);
-	lwsl_info("http request for %s = file %s\n", in, meta.real_filepath);
+	lwsl_notice("HTTP request for %s\n", in);
 
 	int rc;
 	if (prog->redir_from && !strcmp(in, prog->redir_from)) {
@@ -230,17 +230,20 @@ int ws_http_serve_file(struct lws *wsi, const char *in)
 			goto out;
 		if ((rc = lws_finalize_http_header(wsi, &meta.headers_cur, meta.headers + sizeof meta.headers)))
 			goto out;
+		lwsl_notice("-> redirecting to %s\n", prog->redir_to);
 		rc = lws_write(wsi, meta.headers, (size_t)(meta.headers_cur - meta.headers), LWS_WRITE_HTTP_HEADERS);
 	} else if (can_reply_notmodified(wsi, &meta)) {
-		lwsl_debug("could reply 304...\n");
+		// reply 304 Not Modified
 		if ((rc = lws_add_http_header_status(wsi, 304, &meta.headers_cur, meta.headers + sizeof meta.headers)))
 			goto out;
 		if (meta.enc && (rc = lws_add_http_header_by_token(wsi, WSI_TOKEN_HTTP_CONTENT_ENCODING, (const unsigned char*)meta.enc, (int)strlen(meta.enc), &meta.headers_cur, meta.headers + sizeof meta.headers)))
 			goto out;
 		if ((rc = lws_finalize_http_header(wsi, &meta.headers_cur, meta.headers + sizeof meta.headers)))
 			goto out;
+		lwsl_notice("-> not modified\n");
 		rc = lws_write(wsi, meta.headers, (size_t)(meta.headers_cur - meta.headers), LWS_WRITE_HTTP_HEADERS);
 	} else {
+		// 200 OK
 		if (meta.enc && (rc = lws_add_http_header_by_token(wsi, WSI_TOKEN_HTTP_CONTENT_ENCODING, (const unsigned char*)meta.enc, (int)strlen(meta.enc), &meta.headers_cur, meta.headers + sizeof meta.headers)))
 			goto out;
 		if (meta.status) {
@@ -250,6 +253,7 @@ int ws_http_serve_file(struct lws *wsi, const char *in)
 		}
 
 		add_last_modified_header(wsi, &meta);
+		lwsl_notice("-> serving %s\n", meta.real_filepath);
 		rc = lws_serve_http_file(wsi, meta.real_filepath, meta.mime, (const char*)meta.headers, (int)(meta.headers_cur - meta.headers));
 	}
 out:

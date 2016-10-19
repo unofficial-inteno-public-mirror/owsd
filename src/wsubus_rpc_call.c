@@ -181,8 +181,8 @@ int ubusrpc_handle_call(struct lws *wsi, struct ubusrpc_blob *ubusrpc_blob, stru
 
 	int ret;
 
-	lwsl_info("have valid ubus-rpc: do ubus call  %s %s with sid %s\n",
-			ubusrpc_req->object, ubusrpc_req->method, ubusrpc_req->sid);
+	lwsl_notice("client %u wantd to ubus call %s %s with sid %s\n",
+			client->id, ubusrpc_req->object, ubusrpc_req->method, ubusrpc_req->sid);
 
 	struct wsubus_percall_ctx *curr_call = NULL;
 
@@ -238,7 +238,7 @@ static int wsubus_call_do_check_then_do_call(struct wsubus_percall_ctx *curr_cal
 	curr_call->access_check.req = wsubus_access_check__call(prog->ubus_ctx, curr_call->call_args->object, curr_call->call_args->method, curr_call->call_args->sid, curr_call, wsubus_access_on_completed);
 
 	if (!curr_call->access_check.req) {
-		lwsl_warn("access check error\n");
+		lwsl_warn("error setting up access check\n");
 		ret = UBUS_STATUS_UNKNOWN_ERROR;
 
 		list_del(&curr_call->access_check.acq);
@@ -267,6 +267,7 @@ static void wsubus_access_on_completed(struct wsubus_access_check_req *req, void
 	int ret = UBUS_STATUS_OK;
 
 	if (!allow) {
+		lwsl_notice("access check returned deny\n");
 		ret = UBUS_STATUS_PERMISSION_DENIED;
 		goto out;
 	}
@@ -298,7 +299,7 @@ static int wsubus_call_do(struct wsubus_percall_ctx *curr_call)
 	uint32_t object_id;
 	ret = ubus_lookup_id(prog->ubus_ctx, curr_call->call_args->object, &object_id);
 	if (ret != UBUS_STATUS_OK) {
-		lwsl_info("lookup failed: %s\n", ubus_strerror(ret));
+		lwsl_warn("lookup failed: %s\n", ubus_strerror(ret));
 		goto out;
 	}
 
@@ -309,8 +310,10 @@ static int wsubus_call_do(struct wsubus_percall_ctx *curr_call)
 		goto out;
 	}
 
+	// add session ID to all RPC calls
 	blobmsg_add_string(curr_call->call_args->params_buf, "ubus_rpc_session", curr_call->call_args->sid);
 
+	// add _owsd_listen to all RPC calls before login
 	if (!strcmp(curr_call->call_args->sid, UBUS_DEFAULT_SID)) {
 		struct vh_context *vc = lws_protocol_vh_priv_get(lws_get_vhost(curr_call->wsi), lws_get_protocol(curr_call->wsi));
 		blobmsg_add_string(curr_call->call_args->params_buf, "_owsd_listen", vc->name);
@@ -319,7 +322,7 @@ static int wsubus_call_do(struct wsubus_percall_ctx *curr_call)
 	lwsl_info("ubus call request %p...\n", call_req);
 	ret = ubus_invoke_async(prog->ubus_ctx, object_id, curr_call->call_args->method, curr_call->call_args->params_buf->head, call_req);
 	if (ret != UBUS_STATUS_OK) {
-		lwsl_info("invoke failed: %s\n", ubus_strerror(ret));
+		lwsl_warn("invoke failed: %s\n", ubus_strerror(ret));
 		// req will not free itself since will not complete so we dispose it
 		free(call_req);
 		goto out;

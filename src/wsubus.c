@@ -183,18 +183,18 @@ static void wsubus_handle_msg(struct lws *wsi,
 	}
 
 	if (jsonrpc_blob_req_parse(jsonrpc_req, blob) != 0) {
-		lwsl_info("blobmsg not valid jsonrpc\n");
+		lwsl_err("blobmsg not valid jsonrpc\n");
 		e = JSONRPC_ERRORCODE__INVALID_REQUEST;
 		goto out;
 	}
 
 	if ((e = ubusrpc_blob_parse(ubusrpc_req, jsonrpc_req->method, jsonrpc_req->params)) != 0) {
-		lwsl_info("not valid ubus rpc in jsonrpc %d\n", e);
+		lwsl_err("not valid ubus rpc in jsonrpc %d\n", e);
 		goto out;
 	}
 
 	if (ubusrpc_req->handler(wsi, ubusrpc_req, jsonrpc_req->id) != 0) {
-		lwsl_info("ubusrpc method handler failed\n");
+		lwsl_err("ubusrpc method handler failed\n");
 		e = JSONRPC_ERRORCODE__OTHER;
 		goto out;
 	}
@@ -279,14 +279,14 @@ static void wsubus_rx(struct lws *wsi,
 
 	struct wsubus_client_session *client = lws_wsi_user(wsi);
 
-	lwsl_info("client %zu: msg final %d, len was %zu , remaining %zu\n",
+	lwsl_debug("client %u: msg final %d, len was %zu , remaining %zu\n",
 			client->id, is_final_frame, len, remaining_bytes_in_frame);
 	(void)is_final_frame;
 
 	if (len > WSUBUS_MAX_MESSAGE_LEN || remaining_bytes_in_frame > WSUBUS_MAX_MESSAGE_LEN ||
 			client->curr_msg.len + len + remaining_bytes_in_frame > WSUBUS_MAX_MESSAGE_LEN) {
 		// client intends to send too mush data, we will drop them
-		lwsl_err("client %zu received fragment of frame (%zu total) making msg too long\n",
+		lwsl_err("client %u received fragment of frame (%zu total) making msg too long\n",
 				client->id, len + remaining_bytes_in_frame);
 
 		// TODO<lwsclose> check
@@ -312,7 +312,7 @@ static int wsubus_tx_text(struct lws *wsi)
 			int written = lws_write(wsi, w->buf + LWS_SEND_BUFFER_PRE_PADDING + w->written, w->len - w->written, LWS_WRITE_TEXT);
 
 			if (written < 0) {
-				lwsl_err("client %d error %d in writing\n", client->id, written);
+				lwsl_err("client %u error %d in writing\n", client->id, written);
 				// TODO<lwsclose> check
 				// stop reading and writing
 				shutdown(lws_get_socket_fd(wsi), SHUT_RDWR);
@@ -323,13 +323,13 @@ static int wsubus_tx_text(struct lws *wsi)
 		} while (w->written < w->len && !lws_partial_buffered(wsi));
 
 		if (w->written == w->len) {
-			lwsl_notice("client %d fin write %zu\n", client->id, w->len);
+			lwsl_info("client %u wrote %zu\n", client->id, w->len);
 			list_del(&w->wq);
 			free(w->buf);
 			free(w);
 		}
 		if (lws_partial_buffered(wsi)) {
-			lwsl_notice("client %d buffered, wrote %zu of %zu\n", client->id, w->written, w->len);
+			lwsl_warn("client %u buffered, wrote %zu of %zu\n", client->id, w->written, w->len);
 			lws_callback_on_writable(wsi);
 			break;
 		}
@@ -367,7 +367,7 @@ static int wsubus_cb(struct lws *wsi,
 		break;
 
 	case LWS_CALLBACK_SERVER_WRITEABLE:
-		lwsl_notice(WSUBUS_PROTO_NAME ": wsi %p writable now\n", wsi);
+		lwsl_info(WSUBUS_PROTO_NAME ": wsi %p writable now\n", wsi);
 		return wsubus_tx_text(wsi);
 
 		// client is leaving

@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 		case 'r':
 			redir_to = strchr(optarg, ':');
 			if (!redir_to) {
-				lwsl_err("invalid redirect pair specified");
+				lwsl_err("invalid redirect pair specified\n");
 				goto error;
 			}
 			*redir_to++ = '\0';
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 			char *error;
 			int port = strtol(optarg, &error, 10);
 			if (*error) {
-				lwsl_err("Invalid port specified");
+				lwsl_err("Invalid port specified\n");
 				goto error;
 			}
 
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 	global.redir_from = redir_from;
 	global.redir_to = redir_to;
 
-	lwsl_info("Will serve dir '%s' for HTTP\n", www_dirpath);
+	lwsl_notice("Will serve dir '%s' for HTTP\n", www_dirpath);
 
 	ubus_add_uloop(ubus_ctx);
 	// typically 1024, so a couple of KiBs just for pointers...
@@ -269,9 +269,6 @@ int main(int argc, char *argv[])
 		c->protocols = ws_protocols;
 		c->mounts = &wwwmount;
 
-		lwsl_debug("create vhost for port %d with %s , c %s k %s\n", c->port, (c->options & LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT) ? "ssl" : "no ssl",
-				c->ssl_cert_filepath, c->ssl_private_key_filepath);
-
 		struct lws_vhost *vh = lws_create_vhost(lws_ctx, c);
 
 		if (!vh) {
@@ -291,6 +288,9 @@ int main(int argc, char *argv[])
 
 		free(c->user);
 		c->user = NULL;
+
+		lwsl_notice("listen on %s (%s:%d) with %s , c %s k %s\n", vh_context->name, c->iface, c->port, (c->options & LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT) ? "ssl" : "no ssl",
+				c->ssl_cert_filepath, c->ssl_private_key_filepath);
 
 		if (list_empty(&vh_context->origins)) {
 			lwsl_warn("No origins whitelisted on port %d = reject all ws clients\n", c->port);

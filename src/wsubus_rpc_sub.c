@@ -219,6 +219,8 @@ int ubusrpc_handle_sub(struct lws *wsi, struct ubusrpc_blob *ubusrpc, struct blo
 
 	subinfo->ubus_handler = (struct ubus_event_handler){};
 
+	lwsl_notice("client %u wants to do ubus listen %s\n", client->id, ubusrpc->sub.pattern);
+
 	struct prog_context *prog = lws_context_user(lws_get_context(wsi));
 	ret = ubus_register_event_handler(prog->ubus_ctx, &subinfo->ubus_handler, ubusrpc->sub.pattern);
 
@@ -272,10 +274,11 @@ int ubusrpc_handle_sub_list(struct lws *wsi, struct ubusrpc_blob *ubusrpc, struc
 	struct wsubus_client_session *client = lws_wsi_user(wsi);
 	// TODO check_and_update_sid should go in one common place
 	if (wsubus_check_and_update_sid(client, ubusrpc->sub.sid) != 0) {
-		lwsl_warn("curr sid %s != prev sid %s\n", ubusrpc->sub.sid, client->last_known_sid);
 		ret = UBUS_STATUS_NOT_SUPPORTED;
 		goto out;
 	}
+
+	lwsl_notice("client %u wants to list listens\n", client->id);
 
 	struct blob_buf sub_list_blob = {};
 	blob_buf_init(&sub_list_blob, 0);
@@ -314,12 +317,11 @@ int ubusrpc_handle_unsub_by_id(struct lws *wsi, struct ubusrpc_blob *ubusrpc, st
 	struct wsubus_client_session *client = lws_wsi_user(wsi);
 	// TODO check_and_update_sid should go in one common place
 	if (wsubus_check_and_update_sid(client, ubusrpc->unsub_by_id.sid) != 0) {
-		lwsl_warn("curr sid %s != prev sid %s\n", ubusrpc->unsub_by_id.sid, client->last_known_sid);
 		ret = UBUS_STATUS_NOT_SUPPORTED;
 		goto out;
 	}
 
-	lwsl_debug("unsub by id %u ret = %d\n", ubusrpc->unsub_by_id.id, ret);
+	lwsl_notice("client %u wants to unlisten id %u\n", client->id, ubusrpc->unsub_by_id.id);
 	ret = wsubus_unsubscribe_by_wsi_and_id(wsi, ubusrpc->unsub_by_id.id);
 
 	if (ret != 0)
@@ -342,12 +344,11 @@ int ubusrpc_handle_unsub(struct lws *wsi, struct ubusrpc_blob *ubusrpc, struct b
 	struct wsubus_client_session *client = lws_wsi_user(wsi);
 	// TODO check_and_update_sid should go in one common place
 	if (wsubus_check_and_update_sid(client, ubusrpc->sub.sid) != 0) {
-		lwsl_warn("curr sid %s != prev sid %s\n", ubusrpc->sub.sid, client->last_known_sid);
 		ret = UBUS_STATUS_NOT_SUPPORTED;
 		goto out;
 	}
 
-	lwsl_debug("unsub by id %u ret = %d\n", ubusrpc->unsub_by_id.id, ret);
+	lwsl_notice("client %u wants to unlisten %s\n", client->id, ubusrpc->sub.pattern);
 	ret = wsubus_unsubscribe_by_wsi_and_pattern(wsi, ubusrpc->sub.pattern);
 
 	if (ret != 0)
@@ -387,12 +388,13 @@ static void wsubus_ev_check_cb(struct wsubus_access_check_req *req, void *ctx, b
 	struct wsubus_ev_notif *t = ctx;
 
 	assert(req == t->cr.req);
-	lwsl_debug("access check for event gave %d\n", access);
 
 	if (!access) {
+		lwsl_notice("access check for event %s denied\n", t->type);
 		goto out;
 	}
 
+	// manually construct jsonrpc since we're only one sending not resp but req
 	struct blob_buf resp_buf = {};
 	blob_buf_init(&resp_buf, 0);
 	blobmsg_add_string(&resp_buf, "jsonrpc", "2.0");

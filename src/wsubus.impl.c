@@ -36,7 +36,7 @@ int wsubus_write_response_str(struct lws *wsi, const char *response_str)
 			+ len
 			+ LWS_SEND_BUFFER_POST_PADDING);
 	if (!buf) {
-		lwsl_err("failed to alloc ubus response buf");
+		lwsl_err("failed to alloc ubus response buf\n");
 		return -2;
 	}
 
@@ -51,7 +51,7 @@ int wsubus_write_response_str(struct lws *wsi, const char *response_str)
 
 	list_add_tail(&w->wq, &client->write_q);
 
-	lwsl_debug("sending reply: %.*s ... %p, %d\n", len > 50 ? 50 : len, response_str, w);
+	lwsl_notice("sending reply: %.*s ... %p, %d\n", len > 40 ? 40 : len, response_str, w);
 	int r = lws_callback_on_writable(wsi);
 
 	if (r < 0) {
@@ -66,16 +66,18 @@ int wsubus_check_and_update_sid(struct wsubus_client_session *client, const char
 {
 	if (client->last_known_sid == NULL) {
 		client->last_known_sid = strdup(sid);
+		lwsl_notice("client %u now has sid %s\n", client->id, sid);
 		return 0;
 	}
 	if (!strcmp(client->last_known_sid, UBUS_DEFAULT_SID)) {
 		free(client->last_known_sid);
 		client->last_known_sid = strdup(sid);
+		lwsl_notice("client %u login, now has sid %s\n", client->id, sid);
 		return 0;
 	}
 
 	if (strcmp(client->last_known_sid, sid)) {
-		lwsl_warn("curr sid %s != prev sid %s\n", sid, client->last_known_sid);
+		lwsl_warn("client %u curr sid %s != prev sid %s\n", client->id, sid, client->last_known_sid);
 		return 1;
 	}
 	return 0;
