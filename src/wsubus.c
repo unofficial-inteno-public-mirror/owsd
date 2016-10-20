@@ -362,7 +362,7 @@ static int wsubus_cb(struct lws *wsi,
 
 		// read/write
 	case LWS_CALLBACK_RECEIVE:
-		lwsl_notice(WSUBUS_PROTO_NAME ": protocol data received, len %lu\n", len);
+		lwsl_info(WSUBUS_PROTO_NAME ": protocol data received, len %lu\n", len);
 		wsubus_rx(wsi, (char*)in, len);
 		break;
 

@@ -181,7 +181,7 @@ int ubusrpc_handle_call(struct lws *wsi, struct ubusrpc_blob *ubusrpc_blob, stru
 
 	int ret;
 
-	lwsl_notice("client %u wantd to ubus call %s %s with sid %s\n",
+	lwsl_notice("client %u wants to ubus call %s %s with sid %s\n",
 			client->id, ubusrpc_req->object, ubusrpc_req->method, ubusrpc_req->sid);
 
 	struct wsubus_percall_ctx *curr_call = NULL;
