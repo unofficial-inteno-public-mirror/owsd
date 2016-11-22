@@ -11,7 +11,7 @@
  * Author: Denis Osvald <denis.osvald@sartura.hr>
  *
  */
-#!/usr/bin/env node
+//#!/usr/bin/env node
 
 var config = require('./config.js');
 var chalk = require('chalk');
@@ -24,7 +24,7 @@ var session_id;
 var ubus_id = config.ubus_id;
 var i = 0;
 var j = 0;
-var session_json='{"jsonrpc": "2.0", "id": UBUS_ID, "method": "call", "params": [ "00000000000000000000000000000000", "session", "login", { "username": "root", "password": "root"}]}'
+var session_json='{"jsonrpc": "2.0", "id": UBUS_ID, "method": "call", "params": [ "00000000000000000000000000000000", "session", "login", { "username": "admin", "password": "admin"}]}'
 
 process.argv.forEach(function (val, index, array) {
     if (index == 2) {
