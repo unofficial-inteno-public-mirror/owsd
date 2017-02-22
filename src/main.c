@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
 	int rc = 0;
 
 	const char *ubus_sock_path = WSD_DEF_UBUS_PATH;
+	const char *proxy_list_pattern = "*";
 	const char *www_dirpath = WSD_DEF_WWW_PATH;
 	int www_maxage = WSD_DEF_WWW_MAXAGE;
 	char *redir_from = NULL;
@@ -115,7 +116,7 @@ int main(int argc, char *argv[])
 	int c;
 	while ((c = getopt(argc, argv,
 					/* global */
-					"s:w:t:r:h"
+					"s:w:t:r:l:h"
 
 					/* per-client */
 					"P:"
@@ -158,15 +159,18 @@ int main(int argc, char *argv[])
 			break;
 
 			// client
+		case 'l':
+			proxy_list_pattern = optarg;
+			break;
 		case 'P': {
 			struct reconnect_info *newcl = malloc(sizeof *newcl);
-			newcl->wsi = NULL;
-			newcl->timer = (struct uloop_timeout){};
-			newcl->cl_info = (struct lws_client_connect_info){};
 			if (!newcl) {
 				lwsl_err("OOM clinfo init\n");
 				goto error;
 			}
+			newcl->wsi = NULL;
+			newcl->timer = (struct uloop_timeout){};
+			newcl->cl_info = (struct lws_client_connect_info){};
 
 			const char *proto, *addr, *path;
 			int port;
@@ -299,6 +303,7 @@ ssl:
 
 	global.ubus_ctx = ubus_ctx;
 	global.www_path = www_dirpath;
+	global.proxy_list_pattern = proxy_list_pattern;
 	global.redir_from = redir_from;
 	global.redir_to = redir_to;
 

@@ -371,6 +371,7 @@ static int wsubus_cb(struct lws *wsi,
 		size_t len)
 {
 	struct wsu_peer *peer = user;
+	extern struct prog_context global;
 
 	switch (reason) {
 		// new client is connecting
@@ -515,7 +516,8 @@ static int wsubus_cb(struct lws *wsi,
 					goto out;
 				}
 
-				char *d = jsonrpc__req_ubuslist(++remote->call_id, peer->sid, "*");
+				//char *d = jsonrpc__req_ubuslist(++remote->call_id, peer->sid, "*");
+				char *d = jsonrpc__req_ubuslist(++remote->call_id, peer->sid, global.proxy_list_pattern);
 				remote->waiting_for.list_id = remote->call_id;
 				wsu_queue_write_str(wsi, d);
 			} else if (remote->waiting_for.list_id

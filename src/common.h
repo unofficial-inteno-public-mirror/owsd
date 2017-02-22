@@ -33,6 +33,7 @@ struct prog_context {
 	struct ubus_context *ubus_ctx;
 
 	const char *www_path;
+	const char *proxy_list_pattern;
 	const char *redir_from;
 	const char *redir_to;
 };
