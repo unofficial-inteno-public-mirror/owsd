@@ -1,0 +1,2 @@
+# owsd
+Open Websocket Daemon
